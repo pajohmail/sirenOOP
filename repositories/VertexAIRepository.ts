@@ -1,0 +1,68 @@
+import { VertexAI, GenerativeModel } from '@google-cloud/vertexai';
+import { IVertexAIRepository } from './interfaces/IVertexAIRepository';
+
+export class VertexAIRepository implements IVertexAIRepository {
+    private vertexAI: VertexAI;
+    private model: GenerativeModel;
+
+    constructor(projectId: string, location: string, userToken: string) {
+        // CRITICAL: Initialize Vertex AI with client-side user credentials
+        this.vertexAI = new VertexAI({
+            project: projectId,
+            location: location,
+            googleAuthOptions: {
+                credentials: {
+                    access_token: userToken,
+                },
+            },
+        });
+
+        this.model = this.vertexAI.getGenerativeModel({
+            model: 'gemini-1.5-pro-001',
+        });
+    }
+
+    async generateText(prompt: string): Promise<string> {
+        try {
+            const result = await this.model.generateContent(prompt);
+            const response = result.response;
+            const text = response.candidates?.[0].content.parts[0].text;
+
+            if (!text) {
+                throw new Error('No content generated');
+            }
+
+            return text;
+        } catch (error: any) {
+            throw new Error(`Vertex AI generation failed: ${error.message}`);
+        }
+    }
+
+    async generateWithParameters(
+        prompt: string,
+        temperature?: number,
+        maxOutputTokens?: number
+    ): Promise<string> {
+        try {
+            const model = this.vertexAI.getGenerativeModel({
+                model: 'gemini-1.5-pro-001',
+                generationConfig: {
+                    temperature,
+                    maxOutputTokens,
+                },
+            });
+
+            const result = await model.generateContent(prompt);
+            const response = result.response;
+            const text = response.candidates?.[0].content.parts[0].text;
+
+            if (!text) {
+                throw new Error('No content generated');
+            }
+
+            return text;
+        } catch (error: any) {
+            throw new Error(`Vertex AI generation with parameters failed: ${error.message}`);
+        }
+    }
+}
