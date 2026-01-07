@@ -70,6 +70,7 @@ const ProjectDemoWrapper = ({ userId, getIdToken }: { userId: string, getIdToken
     });
 
     const [userToken, setUserToken] = useState<string>('');
+    const [isLoading, setIsLoading] = useState(true);
 
     // Fetch fresh token on mount/user change
     useEffect(() => {
@@ -80,18 +81,62 @@ const ProjectDemoWrapper = ({ userId, getIdToken }: { userId: string, getIdToken
         }
     }, [userId, getIdToken]);
 
+    // Load existing document on mount
+    useEffect(() => {
+        const loadDocument = async () => {
+            if (userId === 'anon') {
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                const { db } = await import('@/config/firebase');
+                const { FirestoreRepository } = await import('@/repositories/FirestoreRepository');
+                const repo = new FirestoreRepository(db);
+
+                // Try to load user's documents
+                const docs = await repo.getUserDesignDocuments(userId);
+                if (docs.length > 0) {
+                    // Load the most recent document
+                    const sortedDocs = docs.sort((a, b) =>
+                        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+                    );
+                    setDoc(sortedDocs[0] as DesignDocument);
+                    console.log("Loaded existing document", sortedDocs[0].id);
+                }
+            } catch (error) {
+                console.error("Failed to load document", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadDocument();
+    }, [userId]);
+
     const handleUpdate = async (newDoc: DesignDocument) => {
         setDoc(newDoc);
         try {
             // Dynamically import to avoid server-side issues with Firebase Client SDK if any
             const { db } = await import('@/config/firebase');
             const { FirestoreRepository } = await import('@/repositories/FirestoreRepository');
-            // const repo = new FirestoreRepository(db); // Unused for now
-            console.log("Persisting document...", newDoc);
+            const repo = new FirestoreRepository(db);
+
+            // Save to Firestore
+            await repo.saveDesignDocument(newDoc);
+            console.log("Document persisted successfully", newDoc.id);
         } catch (e) {
-            console.error("Failed to persist", e);
+            console.error("Failed to persist document", e);
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-gray-500">Loading...</div>
+            </div>
+        );
+    }
 
     return (
         <div>

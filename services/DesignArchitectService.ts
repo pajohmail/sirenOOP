@@ -1,6 +1,10 @@
 import { DesignDocument, UseCase } from "@/core/models/DesignDocument";
 import { IVertexAIRepository } from "@/repositories/interfaces/IVertexAIRepository";
 import { PromptFactory } from "./PromptFactory";
+import { ValidationError, AIGenerationError } from "@/core/errors/ApplicationErrors";
+import { handleError } from "@/core/utils/errorHandler";
+import { ChatAnalysisResponseSchema, MermaidCodeSchema } from "@/core/schemas/AIResponseSchemas";
+import { z } from 'zod';
 
 export interface IDesignArchitectService {
     startAnalysis(projectId: string, initialDescription: string): Promise<DesignDocument>;
@@ -37,35 +41,43 @@ export class DesignArchitectService implements IDesignArchitectService {
     }
 
     async analyzeChat(document: DesignDocument, chatLog: string): Promise<{ document: DesignDocument, reply: string }> {
-        if (!document.analysis) throw new Error("Analysis phase not initialized");
+        if (!document.analysis) {
+            throw new ValidationError("Analysis phase not initialized", {
+                documentId: document.id,
+                currentPhase: document.currentPhase
+            });
+        }
 
         const prompt = PromptFactory.createUseCaseExtractionPrompt(chatLog);
         const result = await this.vertexRepo.generateText(prompt);
 
         let reply = "I've updated the analysis.";
 
-        // Parse JSON result (Basic implementation, needs robust error handling)
+        // Parse JSON result with Zod validation
         try {
             // Clean up code blocks if present
             const cleanJson = result.replace(/```json/g, '').replace(/```/g, '').trim();
             const parsed = JSON.parse(cleanJson);
 
-            // Handle both new object structure and potential legacy array (fallback)
-            let useCases: UseCase[] = [];
+            // Validate with Zod schema
+            const validated = ChatAnalysisResponseSchema.parse(parsed);
 
-            if (Array.isArray(parsed)) {
-                useCases = parsed;
-            } else if (parsed.useCases) {
-                useCases = parsed.useCases;
-                if (parsed.reply) {
-                    reply = parsed.reply;
-                }
+            document.analysis.useCases = validated.useCases;
+            reply = validated.reply;
+            document.updatedAt = new Date();
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                console.error("AI response validation failed", error.errors);
+                throw new ValidationError('Invalid AI response format', {
+                    zodErrors: error.errors,
+                    originalResponse: result.substring(0, 500),
+                });
             }
 
-            document.analysis.useCases = useCases;
-            document.updatedAt = new Date();
-        } catch (e) {
-            console.error("Failed to parse AI response", e);
+            const appError = handleError(error);
+            console.error("Failed to parse AI response", appError);
+
+            // Return graceful fallback for non-validation errors
             reply = "I had trouble processing the design updates, but I'm still listening.";
         }
 
@@ -74,7 +86,10 @@ export class DesignArchitectService implements IDesignArchitectService {
 
     async generateDomainModel(document: DesignDocument): Promise<DesignDocument> {
         if (!document.analysis || document.analysis.useCases.length === 0) {
-            throw new Error("No Use Cases available for Domain Model generation");
+            throw new ValidationError("No Use Cases available for Domain Model generation", {
+                documentId: document.id,
+                useCaseCount: document.analysis?.useCases.length || 0
+            });
         }
 
         const prompt = PromptFactory.createDomainModelPrompt(document.analysis.useCases);
@@ -82,9 +97,22 @@ export class DesignArchitectService implements IDesignArchitectService {
 
         // Extract Mermaid code
         const mermaidMatch = result.match(/```mermaid([\s\S]*?)```/);
-        const mermaidCode = mermaidMatch ? mermaidMatch[1].trim() : result;
+        const mermaidCode = mermaidMatch ? mermaidMatch[1].trim() : result.trim();
 
-        document.analysis.domainModelMermaid = mermaidCode;
+        // Validate Mermaid code with Zod
+        try {
+            const validated = MermaidCodeSchema.parse(mermaidCode);
+            document.analysis.domainModelMermaid = validated;
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                throw new ValidationError('Invalid Mermaid diagram generated', {
+                    zodErrors: error.errors,
+                    generatedCode: mermaidCode.substring(0, 200),
+                });
+            }
+            throw error;
+        }
+
         document.updatedAt = new Date();
         return document;
     }

@@ -4,6 +4,7 @@ import { DesignDocument } from '@/core/models/DesignDocument';
 import { DesignPatternAdvisor } from '@/services/DesignPatternAdvisor';
 import { useState, useMemo } from 'react';
 import { generateObjectDesignAction } from '@/app/actions/aiActions';
+import { MermaidRenderer } from '../shared/MermaidRenderer';
 
 interface PhaseProps {
     document: DesignDocument;
@@ -70,11 +71,11 @@ export const ObjectDesignPhase = ({ document, onUpdate, userToken }: PhaseProps)
                     {document.objectDesign?.classDiagramMermaid ? (
                         <div className="w-full h-full flex flex-col">
                             <div className="flex-1 bg-white border p-4 rounded shadow-sm overflow-auto">
-                                <pre className="text-xs font-mono">{document.objectDesign.classDiagramMermaid}</pre>
+                                <MermaidRenderer
+                                    chart={document.objectDesign.classDiagramMermaid}
+                                    className="w-full h-full"
+                                />
                             </div>
-                            <p className="text-xs text-center text-gray-500 mt-2">
-                                * Diagram rendering is currently in raw text mode. Copy to Mermaid.live to view.
-                            </p>
                         </div>
                     ) : (
                         <div className="text-center text-gray-400">

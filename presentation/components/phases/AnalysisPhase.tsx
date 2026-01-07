@@ -2,6 +2,7 @@
 
 import { DesignDocument, UseCase } from '@/core/models/DesignDocument';
 import { useState } from 'react';
+import { MermaidRenderer } from '../shared/MermaidRenderer';
 
 interface AnalysisPhaseProps {
     document: DesignDocument;
@@ -135,9 +136,10 @@ export const AnalysisPhase = ({ document, onUpdate, userToken }: AnalysisPhasePr
                     <div>
                         <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Domain Model</h4>
                         {document.analysis?.domainModelMermaid ? (
-                            <div className="bg-white p-2 rounded border text-xs font-mono overflow-x-auto">
-                                {document.analysis.domainModelMermaid}
-                            </div>
+                            <MermaidRenderer
+                                chart={document.analysis.domainModelMermaid}
+                                className="bg-white p-4 rounded border overflow-x-auto"
+                            />
                         ) : (
                             <p className="text-sm text-gray-400 italic">Domain model pending...</p>
                         )}
