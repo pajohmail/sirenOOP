@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   },
   // Disable server-side features for static export
   trailingSlash: true,
+  basePath: '/sirenOOP',
 };
 
 export default nextConfig;
