@@ -1,15 +1,20 @@
 'use client';
 
 import { DesignDocument } from '@/core/models/DesignDocument';
-import { DesignPatternAdvisor, DesignPattern } from '@/services/DesignPatternAdvisor';
+import { DesignPatternAdvisor } from '@/services/DesignPatternAdvisor';
 import { useState, useMemo } from 'react';
+import { generateObjectDesignAction } from '@/app/actions/aiActions';
 
 interface PhaseProps {
     document: DesignDocument;
     onUpdate: (doc: DesignDocument) => void;
+    userToken?: string;
 }
 
-export const ObjectDesignPhase = ({ document }: PhaseProps) => {
+export const ObjectDesignPhase = ({ document, onUpdate, userToken }: PhaseProps) => {
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
     // Lazily initialize the advisor to ensure it's client-side only if needed
     const [advisor] = useState(() => new DesignPatternAdvisor());
 
@@ -17,12 +22,67 @@ export const ObjectDesignPhase = ({ document }: PhaseProps) => {
         return advisor.suggestPatterns(document);
     }, [document.analysis?.useCases]); // Re-run if use cases change
 
+    const handleGenerate = async () => {
+        if (!userToken) {
+            setError("No user token available. Please refresh or sign in again.");
+            return;
+        }
+
+        setIsGenerating(true);
+        setError(null);
+        try {
+            const updatedDoc = await generateObjectDesignAction(document, userToken);
+            onUpdate(updatedDoc);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
-            <div className="md:col-span-2 text-center py-20">
-                <h2 className="text-2xl font-bold text-gray-700">Phase 3: Object Design</h2>
-                <p className="text-sm text-gray-400 mb-4">Project: {document.projectName}</p>
-                <p className="text-gray-500 mt-2">Class Diagrams and Sequence Diagrams with SOLID/GRASP principles.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full p-4">
+            {/* Main Content Area */}
+            <div className="md:col-span-2 flex flex-col h-full border rounded-lg bg-white overflow-hidden">
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                    <div>
+                        <h3 className="font-bold text-gray-700">Object Design (Class Diagram)</h3>
+                        <p className="text-xs text-gray-500">Phase 3</p>
+                    </div>
+
+                    <button
+                        onClick={handleGenerate}
+                        disabled={isGenerating}
+                        className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${isGenerating ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
+                    >
+                        {isGenerating ? 'Generating...' : 'Generate Class Diagram'}
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-auto p-4 flex flex-col items-center justify-center bg-gray-50/50">
+                    {error && (
+                        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded w-full max-w-2xl">
+                            {error}
+                        </div>
+                    )}
+
+                    {document.objectDesign?.classDiagramMermaid ? (
+                        <div className="w-full h-full flex flex-col">
+                            <div className="flex-1 bg-white border p-4 rounded shadow-sm overflow-auto">
+                                <pre className="text-xs font-mono">{document.objectDesign.classDiagramMermaid}</pre>
+                            </div>
+                            <p className="text-xs text-center text-gray-500 mt-2">
+                                * Diagram rendering is currently in raw text mode. Copy to Mermaid.live to view.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-400">
+                            <p>No class diagram generated yet.</p>
+                            <p className="text-sm mt-2">Click generate to create a detailed design based on the system architecture.</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Pattern Suggestions Sidebar */}
@@ -41,8 +101,8 @@ export const ObjectDesignPhase = ({ document }: PhaseProps) => {
                                 <div className="flex justify-between items-start">
                                     <h4 className="font-semibold text-gray-800">{pattern.name}</h4>
                                     <span className={`text-xs px-2 py-0.5 rounded-full ${pattern.usageProbability === 'High' ? 'bg-green-100 text-green-800' :
-                                            pattern.usageProbability === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-gray-100 text-gray-800'
+                                        pattern.usageProbability === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-gray-100 text-gray-800'
                                         }`}>
                                         {pattern.usageProbability}
                                     </span>

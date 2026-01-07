@@ -69,13 +69,13 @@ export const ProjectWizard = ({ document, onUpdate, userToken }: ProjectWizardPr
                     <AnalysisPhase document={document} onUpdate={onUpdate} userToken={userToken} />
                 )}
                 {document.currentPhase === 'systemDesign' && (
-                    <SystemDesignPhase document={document} onUpdate={onUpdate} />
+                    <SystemDesignPhase document={document} onUpdate={onUpdate} userToken={userToken} />
                 )}
                 {document.currentPhase === 'objectDesign' && (
-                    <ObjectDesignPhase document={document} onUpdate={onUpdate} />
+                    <ObjectDesignPhase document={document} onUpdate={onUpdate} userToken={userToken} />
                 )}
                 {document.currentPhase === 'validation' && (
-                    <ValidationPhase document={document} onUpdate={onUpdate} />
+                    <ValidationPhase document={document} onUpdate={onUpdate} userToken={userToken} />
                 )}
             </div>
 

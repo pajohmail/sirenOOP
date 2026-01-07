@@ -47,13 +47,13 @@ export const AnalysisPhase = ({ document, onUpdate, userToken }: AnalysisPhasePr
             setMessages(prev => [...prev, { role: 'ai', content: 'Analyzing...' }]);
 
             const { analyzeChatAction } = await import('@/app/actions/aiActions');
-            const updatedDoc = await analyzeChatAction(document, chatInput, userToken);
+            const { document: updatedDoc, reply } = await analyzeChatAction(document, chatInput, userToken);
 
             onUpdate(updatedDoc);
 
             setMessages(prev => [
                 ...prev.filter(m => m.content !== 'Analyzing...'),
-                { role: 'ai', content: 'I have updated the analysis based on your input.' }
+                { role: 'ai', content: reply }
             ]);
 
         } catch (error: any) {

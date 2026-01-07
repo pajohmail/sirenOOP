@@ -10,6 +10,7 @@ interface AuthContextType {
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
+    getIdToken: () => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     signInWithGoogle: async () => { },
     signOut: async () => { },
+    getIdToken: async () => '',
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -51,12 +53,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    const getIdToken = async (): Promise<string> => {
+        try {
+            return await authRepository.getUserToken();
+        } catch (error) {
+            console.error('Error getting token:', error);
+            throw error;
+        }
+    };
+
     return (
-        <AuthContext.Provider value= {{ user, loading, signInWithGoogle, signOut }
-}>
-    { children }
-    </AuthContext.Provider>
-  );
+        <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, getIdToken }}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => useContext(AuthContext);

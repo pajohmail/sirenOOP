@@ -1,5 +1,5 @@
 export interface IVertexAIRepository {
-    generateText(prompt: string, model?: string): Promise<string>;
+    generateText(prompt: string): Promise<string>;
     generateWithParameters(
         prompt: string,
         temperature?: number,

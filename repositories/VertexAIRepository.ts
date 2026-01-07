@@ -5,20 +5,16 @@ export class VertexAIRepository implements IVertexAIRepository {
     private vertexAI: VertexAI;
     private model: GenerativeModel;
 
-    constructor(projectId: string, location: string, userToken: string) {
-        // CRITICAL: Initialize Vertex AI with client-side user credentials
+    constructor(projectId: string, location: string) {
+        // Initialize Vertex AI with Application Default Credentials (ADC)
+        // This relies on the environment having credentials (gcloud auth login locally, or Service Account in cloud)
         this.vertexAI = new VertexAI({
             project: projectId,
             location: location,
-            googleAuthOptions: {
-                credentials: {
-                    access_token: userToken,
-                } as any,
-            },
         });
 
         this.model = this.vertexAI.getGenerativeModel({
-            model: 'gemini-1.5-pro-001',
+            model: 'gemini-2.0-flash-001',
         });
     }
 
@@ -45,7 +41,7 @@ export class VertexAIRepository implements IVertexAIRepository {
     ): Promise<string> {
         try {
             const model = this.vertexAI.getGenerativeModel({
-                model: 'gemini-1.5-pro-001',
+                model: 'gemini-2.0-flash-001',
                 generationConfig: {
                     temperature,
                     maxOutputTokens,

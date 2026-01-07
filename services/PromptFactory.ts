@@ -4,8 +4,20 @@ export class PromptFactory {
     // Phase 1: Analysis
     static createUseCaseExtractionPrompt(chatLog: string): string {
         return `
-        Analyze the following conversation about a software system and extract Use Cases.
-        Return the result as a JSON array of objects with the fields: id (string), title (string), narrative (string), actors (array of strings).
+        Analyze the following conversation about a software system.
+        1. Act as an expert software architect. Provide a helpful, concise response.
+        2. IMPORTANTE: ADAPT TO THE USER'S LANGUAGE.
+        3. CRITICAL: Be PROACTIVE and DRIVE the conversation forward. Instead of open-ended questions, ask LEADING questions (e.g., "Shall we include a dashboard for admins?", "I assume users need a login, correct?").
+        4. When you have a solid baseline, explicitly PROPOSE moving to the 'System Design' phase.
+        5. Extract any new Use Cases or update existing ones based on the conversation.
+        
+        Return the result as a JSON object with the following structure:
+        {
+            "reply": "Your conversational response here...",
+            "useCases": [
+                { "id": "...", "title": "...", "narrative": "...", "actors": ["..."] }
+            ]
+        }
         
         Chat Log:
         ${chatLog}
@@ -56,6 +68,29 @@ export class PromptFactory {
         
         Architecture:
         ${architecture}
+        `;
+    }
+
+    // Phase 4: Validation
+    static createValidationPrompt(useCases: UseCase[], classDiagram: string): string {
+        return `
+        Analyze the following Design Class Diagram against the original Use Cases.
+        Perform a Traceability Check:
+        1. For each Use Case, identify which classes and methods support it.
+        2. Identify any missing functionality (Use Cases not supported by the design).
+        3. Identify any unnecessary complexity (Classes/Methods not tracing back to a Use Case).
+        
+        Return the result as a Markdown report with the following sections:
+        - ## Traceability Matrix (Table)
+        - ## Missing Requirements
+        - ## Unnecessary Components
+        - ## Overall Quality Score (1-10)
+        
+        Use Cases:
+        ${JSON.stringify(useCases)}
+        
+        Class Diagram:
+        ${classDiagram}
         `;
     }
 }
