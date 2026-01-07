@@ -1,54 +1,34 @@
 'use client';
 
-import { DesignDocument, UseCase } from '@/core/models/DesignDocument';
+import { DesignDocument } from '@/core/models/DesignDocument';
 import { useState } from 'react';
 import { MermaidRenderer } from '../shared/MermaidRenderer';
+import { useDesignArchitect } from '@/presentation/hooks/useDesignArchitect';
 
 interface AnalysisPhaseProps {
     document: DesignDocument;
     onUpdate: (doc: DesignDocument) => void;
-    userToken?: string;
 }
 
-export const AnalysisPhase = ({ document, onUpdate, userToken }: AnalysisPhaseProps) => {
+export const AnalysisPhase = ({ document, onUpdate }: AnalysisPhaseProps) => {
     const [chatInput, setChatInput] = useState('');
     const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string }[]>([
         { role: 'ai', content: 'Hello! Tell me about the system you want to build. Who are the users and what are their goals?' }
     ]);
+    const { analyzeChat } = useDesignArchitect();
 
     const handleSendMessage = async () => {
         if (!chatInput.trim()) return;
 
         const newMessages = [...messages, { role: 'user' as const, content: chatInput }];
         setMessages(newMessages);
+        const userMessage = chatInput;
         setChatInput('');
 
         try {
-            // Get user token from Auth Context? 
-            // We need to pass it down or access it. 
-            // Ideally useAuth provides it, but here we depend on props mostly.
-            // Let's assume the parent passes the token or we access it from localStorage or Context 
-            // BUT hooks cannot be used in async callback easily if not captured.
-            // Simplified: User must ensure they are logged in.
-
-            // NOTE: In a real app, passing the raw token here is sensitive. 
-            // Ensure HTTPS.
-
-            // We need the token! 
-            // Assuming for now the document.userId matches current user and we can get token.
-            // Wait, we need the token from the AuthContext.
-            // We will inject a `userToken` prop to AnalysisPhase.
-            // const token = (window as any).currentUserToken; // Hack for Demo if not passed prop
-
-            if (!userToken) {
-                setMessages(prev => [...prev, { role: 'ai', content: 'Error: No access token found. Please sign in again.' }]);
-                return;
-            }
-
             setMessages(prev => [...prev, { role: 'ai', content: 'Analyzing...' }]);
 
-            const { analyzeChatAction } = await import('@/app/actions/aiActions');
-            const { document: updatedDoc, reply } = await analyzeChatAction(document, chatInput, userToken);
+            const { document: updatedDoc, reply } = await analyzeChat(document, userMessage);
 
             onUpdate(updatedDoc);
 
@@ -57,11 +37,12 @@ export const AnalysisPhase = ({ document, onUpdate, userToken }: AnalysisPhasePr
                 { role: 'ai', content: reply }
             ]);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
             setMessages(prev => [
                 ...prev.filter(m => m.content !== 'Analyzing...'),
-                { role: 'ai', content: `Error: ${error.message}` }
+                { role: 'ai', content: `Error: ${errorMessage}` }
             ]);
         }
     };
@@ -148,11 +129,6 @@ export const AnalysisPhase = ({ document, onUpdate, userToken }: AnalysisPhasePr
                 <div className="mt-4 pt-4 border-t">
                     <button
                         onClick={async () => {
-                            // 1. Trigger one last analysis to be sure (optional, or just trust current state)
-                            // For speed, let's just transition if we have use cases.
-                            // If we want to be safe, we send a "finalize" message.
-
-                            // Let's assume the user is happy with what's visible in the sidebar.
                             if (document.analysis?.useCases && document.analysis.useCases.length > 0) {
                                 onUpdate({
                                     ...document,
@@ -160,12 +136,7 @@ export const AnalysisPhase = ({ document, onUpdate, userToken }: AnalysisPhasePr
                                     analysis: { ...document.analysis, completed: true }
                                 });
                             } else {
-                                // Force an generation pass if empty
-                                // This is a bit tricky without a user message. 
-                                // We'll mock a "finalize" message.
-                                const { analyzeChatAction } = await import('@/app/actions/aiActions');
-                                // Send a hidden system instruction disguised as user input or just a trigger.
-                                const { document: updated, reply } = await analyzeChatAction(document, "Please finalize the Use Cases based on our discussion so far.", userToken!);
+                                const { document: updated } = await analyzeChat(document, "Please finalize the Use Cases based on our discussion so far.");
 
                                 onUpdate({
                                     ...updated,

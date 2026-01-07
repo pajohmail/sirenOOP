@@ -1,7 +1,7 @@
-import { DesignDocument, UseCase } from "@/core/models/DesignDocument";
+import { DesignDocument } from "@/core/models/DesignDocument";
 import { IVertexAIRepository } from "@/repositories/interfaces/IVertexAIRepository";
 import { PromptFactory } from "./PromptFactory";
-import { ValidationError, AIGenerationError } from "@/core/errors/ApplicationErrors";
+import { ValidationError } from "@/core/errors/ApplicationErrors";
 import { handleError } from "@/core/utils/errorHandler";
 import { ChatAnalysisResponseSchema, MermaidCodeSchema } from "@/core/schemas/AIResponseSchemas";
 import { z } from 'zod';
@@ -67,11 +67,10 @@ export class DesignArchitectService implements IDesignArchitectService {
             document.updatedAt = new Date();
         } catch (error) {
             if (error instanceof z.ZodError) {
-                console.error("AI response validation failed", error.errors);
-                throw new ValidationError('Invalid AI response format', {
-                    zodErrors: error.errors,
-                    originalResponse: result.substring(0, 500),
-                });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const zodError = error as any;
+                const errors = zodError.errors.map((e: any) => e.message).join(", ");
+                throw new ValidationError(`Use cases are invalid: ${errors}`);
             }
 
             const appError = handleError(error);
@@ -105,8 +104,10 @@ export class DesignArchitectService implements IDesignArchitectService {
             document.analysis.domainModelMermaid = validated;
         } catch (error) {
             if (error instanceof z.ZodError) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const zodError = error as any;
                 throw new ValidationError('Invalid Mermaid diagram generated', {
-                    zodErrors: error.errors,
+                    zodErrors: zodError.errors,
                     generatedCode: mermaidCode.substring(0, 200),
                 });
             }

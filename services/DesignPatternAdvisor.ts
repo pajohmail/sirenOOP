@@ -1,4 +1,4 @@
-import { DesignDocument, UseCase } from "@/core/models/DesignDocument";
+import { DesignDocument } from "@/core/models/DesignDocument";
 
 export interface DesignPattern {
     id: string;

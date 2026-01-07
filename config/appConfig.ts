@@ -18,16 +18,17 @@ const EnvSchema = z.object({
     NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_ID: z.string().min(1, 'Google Cloud project ID is required'),
     NEXT_PUBLIC_GOOGLE_CLOUD_LOCATION: z.string().default('europe-north1'),
 
-    // Vertex AI Configuration
-    NEXT_PUBLIC_VERTEX_AI_MODEL: z.string().default('gemini-2.0-flash-001'),
-    NEXT_PUBLIC_VERTEX_AI_TEMPERATURE: z.string()
+    // Gemini AI Configuration
+    NEXT_PUBLIC_GEMINI_API_KEY: z.string().min(1, 'Gemini API key is required'),
+    NEXT_PUBLIC_GEMINI_MODEL: z.string().default('gemini-2.0-flash-exp'),
+    NEXT_PUBLIC_GEMINI_TEMPERATURE: z.string()
         .transform(val => parseFloat(val))
         .pipe(z.number().min(0).max(2))
-        .default('0.7'),
-    NEXT_PUBLIC_VERTEX_AI_MAX_TOKENS: z.string()
+        .default(0.7),
+    NEXT_PUBLIC_GEMINI_MAX_TOKENS: z.string()
         .transform(val => parseInt(val, 10))
         .pipe(z.number().positive())
-        .default('2048'),
+        .default(2048),
 });
 
 /**
@@ -48,16 +49,19 @@ function validateEnv() {
             NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || (isTest ? 'test-app-id' : undefined),
             NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_ID || (isTest ? 'test-project' : undefined),
             NEXT_PUBLIC_GOOGLE_CLOUD_LOCATION: process.env.NEXT_PUBLIC_GOOGLE_CLOUD_LOCATION || 'europe-north1',
-            NEXT_PUBLIC_VERTEX_AI_MODEL: process.env.NEXT_PUBLIC_VERTEX_AI_MODEL || 'gemini-2.0-flash-001',
-            NEXT_PUBLIC_VERTEX_AI_TEMPERATURE: process.env.NEXT_PUBLIC_VERTEX_AI_TEMPERATURE || '0.7',
-            NEXT_PUBLIC_VERTEX_AI_MAX_TOKENS: process.env.NEXT_PUBLIC_VERTEX_AI_MAX_TOKENS || '2048',
+            NEXT_PUBLIC_GEMINI_API_KEY: process.env.NEXT_PUBLIC_GEMINI_API_KEY || (isTest ? 'test-gemini-key' : undefined),
+            NEXT_PUBLIC_GEMINI_MODEL: process.env.NEXT_PUBLIC_GEMINI_MODEL || 'gemini-2.0-flash-exp',
+            NEXT_PUBLIC_GEMINI_TEMPERATURE: process.env.NEXT_PUBLIC_GEMINI_TEMPERATURE || '0.7',
+            NEXT_PUBLIC_GEMINI_MAX_TOKENS: process.env.NEXT_PUBLIC_GEMINI_MAX_TOKENS || '2048',
         });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            const errorMessages = error.errors?.map(e => `${e.path.join('.')}: ${e.message}`).join(', ') || 'Unknown validation error';
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const zodError = error as any;
+            const errorMessages = zodError.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || 'Unknown validation error';
             throw new ConfigurationError(
                 `Environment validation failed: ${errorMessages}`,
-                { zodErrors: error.errors }
+                { zodErrors: zodError.errors }
             );
         }
         throw error;
@@ -84,10 +88,11 @@ export const config = {
         projectId: validatedEnv.NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT_ID,
         location: validatedEnv.NEXT_PUBLIC_GOOGLE_CLOUD_LOCATION,
     },
-    vertexAI: {
-        model: validatedEnv.NEXT_PUBLIC_VERTEX_AI_MODEL,
-        temperature: validatedEnv.NEXT_PUBLIC_VERTEX_AI_TEMPERATURE,
-        maxTokens: validatedEnv.NEXT_PUBLIC_VERTEX_AI_MAX_TOKENS,
+    gemini: {
+        apiKey: validatedEnv.NEXT_PUBLIC_GEMINI_API_KEY,
+        model: validatedEnv.NEXT_PUBLIC_GEMINI_MODEL,
+        temperature: validatedEnv.NEXT_PUBLIC_GEMINI_TEMPERATURE,
+        maxTokens: validatedEnv.NEXT_PUBLIC_GEMINI_MAX_TOKENS,
     },
 } as const;
 

@@ -59,7 +59,7 @@ export type ValidatedValidationResponse = z.infer<typeof ValidationResponseSchem
  */
 export const GenericAIResponseSchema = z.object({
     text: z.string().min(1, 'Response text is required'),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ValidatedGenericAIResponse = z.infer<typeof GenericAIResponseSchema>;

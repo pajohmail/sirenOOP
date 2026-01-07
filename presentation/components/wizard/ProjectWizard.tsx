@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+
 import { DesignDocument, ProjectPhase } from '@/core/models/DesignDocument';
 import { AnalysisPhase } from '../phases/AnalysisPhase';
 import { SystemDesignPhase } from '../phases/SystemDesignPhase';
@@ -10,7 +10,6 @@ import { ValidationPhase } from '../phases/ValidationPhase';
 interface ProjectWizardProps {
     document: DesignDocument;
     onUpdate: (doc: DesignDocument) => void;
-    userToken?: string;
 }
 
 const steps: { id: ProjectPhase; label: string }[] = [
@@ -20,7 +19,7 @@ const steps: { id: ProjectPhase; label: string }[] = [
     { id: 'validation', label: '4. Validation' },
 ];
 
-export const ProjectWizard = ({ document, onUpdate, userToken }: ProjectWizardProps) => {
+export const ProjectWizard = ({ document, onUpdate }: ProjectWizardProps) => {
     const currentStepIndex = steps.findIndex((s) => s.id === document.currentPhase);
 
     const handlePhaseChange = (phase: ProjectPhase) => {
@@ -66,16 +65,16 @@ export const ProjectWizard = ({ document, onUpdate, userToken }: ProjectWizardPr
             {/* Phase Content */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 min-h-[600px] p-6">
                 {document.currentPhase === 'analysis' && (
-                    <AnalysisPhase document={document} onUpdate={onUpdate} userToken={userToken} />
+                    <AnalysisPhase document={document} onUpdate={onUpdate} />
                 )}
                 {document.currentPhase === 'systemDesign' && (
-                    <SystemDesignPhase document={document} onUpdate={onUpdate} userToken={userToken} />
+                    <SystemDesignPhase document={document} onUpdate={onUpdate} />
                 )}
                 {document.currentPhase === 'objectDesign' && (
-                    <ObjectDesignPhase document={document} onUpdate={onUpdate} userToken={userToken} />
+                    <ObjectDesignPhase document={document} onUpdate={onUpdate} />
                 )}
                 {document.currentPhase === 'validation' && (
-                    <ValidationPhase document={document} onUpdate={onUpdate} userToken={userToken} />
+                    <ValidationPhase document={document} onUpdate={onUpdate} />
                 )}
             </div>
 

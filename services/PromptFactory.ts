@@ -1,4 +1,4 @@
-import { DesignDocument, UseCase } from "@/core/models/DesignDocument";
+import { UseCase } from "@/core/models/DesignDocument";
 
 export class PromptFactory {
     // Phase 1: Analysis

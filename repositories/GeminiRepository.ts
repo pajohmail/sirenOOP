@@ -1,38 +1,23 @@
-import { VertexAI, GenerativeModel } from '@google-cloud/vertexai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { IVertexAIRepository } from './interfaces/IVertexAIRepository';
 import { AIGenerationError } from '@/core/errors/ApplicationErrors';
 import { handleError } from '@/core/utils/errorHandler';
-import { config } from '@/config/appConfig';
 
-export class VertexAIRepository implements IVertexAIRepository {
-    private vertexAI: VertexAI;
-    private model: GenerativeModel;
+export class GeminiRepository implements IVertexAIRepository {
+    private genAI: GoogleGenerativeAI;
+    private modelName: string;
 
-    constructor(projectId: string, location: string, userToken?: string) {
-        // Initialize Vertex AI with Application Default Credentials (ADC)
-        // If userToken is provided, use it for authentication
-        const authOptions = userToken ? {
-            googleAuthOptions: {
-                credentials: { access_token: userToken }
-            }
-        } : {};
-
-        this.vertexAI = new VertexAI({
-            project: projectId,
-            location: location,
-            ...authOptions
-        });
-
-        this.model = this.vertexAI.getGenerativeModel({
-            model: config.vertexAI.model,
-        });
+    constructor(apiKey: string, modelName: string = 'gemini-2.0-flash-exp') {
+        this.genAI = new GoogleGenerativeAI(apiKey);
+        this.modelName = modelName;
     }
 
     async generateText(prompt: string): Promise<string> {
         try {
-            const result = await this.model.generateContent(prompt);
+            const model = this.genAI.getGenerativeModel({ model: this.modelName });
+            const result = await model.generateContent(prompt);
             const response = result.response;
-            const text = response.candidates?.[0].content.parts[0].text;
+            const text = response.text();
 
             if (!text) {
                 throw new AIGenerationError('No content generated', {
@@ -45,7 +30,7 @@ export class VertexAIRepository implements IVertexAIRepository {
         } catch (error) {
             const appError = handleError(error);
             throw new AIGenerationError(
-                `Vertex AI generation failed: ${appError.message}`,
+                `Gemini generation failed: ${appError.message}`,
                 {
                     originalError: appError.toJSON(),
                     promptLength: prompt.length,
@@ -60,17 +45,17 @@ export class VertexAIRepository implements IVertexAIRepository {
         maxOutputTokens?: number
     ): Promise<string> {
         try {
-            const model = this.vertexAI.getGenerativeModel({
-                model: config.vertexAI.model,
+            const model = this.genAI.getGenerativeModel({
+                model: this.modelName,
                 generationConfig: {
-                    temperature: temperature ?? config.vertexAI.temperature,
-                    maxOutputTokens: maxOutputTokens ?? config.vertexAI.maxTokens,
+                    temperature: temperature ?? 0.7,
+                    maxOutputTokens: maxOutputTokens ?? 2048,
                 },
             });
 
             const result = await model.generateContent(prompt);
             const response = result.response;
-            const text = response.candidates?.[0].content.parts[0].text;
+            const text = response.text();
 
             if (!text) {
                 throw new AIGenerationError('No content generated with parameters', {
@@ -84,7 +69,7 @@ export class VertexAIRepository implements IVertexAIRepository {
         } catch (error) {
             const appError = handleError(error);
             throw new AIGenerationError(
-                `Vertex AI generation with parameters failed: ${appError.message}`,
+                `Gemini generation with parameters failed: ${appError.message}`,
                 {
                     originalError: appError.toJSON(),
                     temperature,

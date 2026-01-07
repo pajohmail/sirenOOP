@@ -2,49 +2,43 @@
 
 import { DesignDocument } from '@/core/models/DesignDocument';
 import { useState } from 'react';
-import { validateDesignAction, generateReportAction } from '@/app/actions/aiActions';
+import { useDesignArchitect } from '@/presentation/hooks/useDesignArchitect';
 
 interface PhaseProps {
     document: DesignDocument;
     onUpdate: (doc: DesignDocument) => void;
-    userToken?: string;
 }
 
-export const ValidationPhase = ({ document, onUpdate, userToken }: PhaseProps) => {
+export const ValidationPhase = ({ document, onUpdate }: PhaseProps) => {
     const [isValidating, setIsValidating] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [report, setReport] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { validateDesign, generateReport } = useDesignArchitect();
 
     const handleValidate = async () => {
-        if (!userToken) {
-            setError("No user token available.");
-            return;
-        }
         setIsValidating(true);
         setError(null);
         try {
-            const updatedDoc = await validateDesignAction(document, userToken);
+            const updatedDoc = await validateDesign(document);
             onUpdate(updatedDoc);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            setError(errorMessage);
         } finally {
             setIsValidating(false);
         }
     };
 
     const handleExport = async () => {
-        if (!userToken) {
-            setError("No user token available.");
-            return;
-        }
         setIsExporting(true);
         setError(null);
         try {
-            const result = await generateReportAction(document, userToken);
+            const result = await generateReport(document);
             setReport(result);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            setError(errorMessage);
         } finally {
             setIsExporting(false);
         }

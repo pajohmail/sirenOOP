@@ -1,33 +1,27 @@
+'use client';
+
 import { DesignDocument } from '@/core/models/DesignDocument';
 import { useState } from 'react';
-import { generateSystemArchitectureAction } from '@/app/actions/aiActions';
+import { useDesignArchitect } from '@/presentation/hooks/useDesignArchitect';
 import { MermaidRenderer } from '../shared/MermaidRenderer';
 
 interface PhaseProps {
     document: DesignDocument;
     onUpdate: (doc: DesignDocument) => void;
-    userToken?: string;
 }
 
-export const SystemDesignPhase = ({ document, onUpdate, userToken }: PhaseProps) => {
-    const [isGenerating, setIsGenerating] = useState(false);
+export const SystemDesignPhase = ({ document, onUpdate }: PhaseProps) => {
     const [error, setError] = useState<string | null>(null);
+    const { generateSystemArchitecture, isLoading: isGenerating } = useDesignArchitect();
 
     const handleGenerate = async () => {
-        if (!userToken) {
-            setError("No user token available. Please refresh or sign in again.");
-            return;
-        }
-
-        setIsGenerating(true);
         setError(null);
         try {
-            const updatedDoc = await generateSystemArchitectureAction(document, userToken);
+            const updatedDoc = await generateSystemArchitecture(document);
             onUpdate(updatedDoc);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsGenerating(false);
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            setError(errorMessage);
         }
     };
 

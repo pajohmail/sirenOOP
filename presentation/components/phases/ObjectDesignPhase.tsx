@@ -3,41 +3,32 @@
 import { DesignDocument } from '@/core/models/DesignDocument';
 import { DesignPatternAdvisor } from '@/services/DesignPatternAdvisor';
 import { useState, useMemo } from 'react';
-import { generateObjectDesignAction } from '@/app/actions/aiActions';
+import { useDesignArchitect } from '@/presentation/hooks/useDesignArchitect';
 import { MermaidRenderer } from '../shared/MermaidRenderer';
 
 interface PhaseProps {
     document: DesignDocument;
     onUpdate: (doc: DesignDocument) => void;
-    userToken?: string;
 }
 
-export const ObjectDesignPhase = ({ document, onUpdate, userToken }: PhaseProps) => {
-    const [isGenerating, setIsGenerating] = useState(false);
+export const ObjectDesignPhase = ({ document, onUpdate }: PhaseProps) => {
     const [error, setError] = useState<string | null>(null);
+    const { generateObjectDesign, isLoading: isGenerating } = useDesignArchitect();
 
-    // Lazily initialize the advisor to ensure it's client-side only if needed
     const [advisor] = useState(() => new DesignPatternAdvisor());
 
     const suggestions = useMemo(() => {
         return advisor.suggestPatterns(document);
-    }, [document.analysis?.useCases]); // Re-run if use cases change
+    }, [document.analysis?.useCases]);
 
     const handleGenerate = async () => {
-        if (!userToken) {
-            setError("No user token available. Please refresh or sign in again.");
-            return;
-        }
-
-        setIsGenerating(true);
         setError(null);
         try {
-            const updatedDoc = await generateObjectDesignAction(document, userToken);
+            const updatedDoc = await generateObjectDesign(document);
             onUpdate(updatedDoc);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsGenerating(false);
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+            setError(errorMessage);
         }
     };
 

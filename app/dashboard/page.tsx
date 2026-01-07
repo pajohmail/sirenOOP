@@ -7,7 +7,7 @@ import { DesignDocument } from '@/core/models/DesignDocument';
 import { useState, useEffect } from 'react';
 
 export default function Dashboard() {
-    const { user, signOut, getIdToken } = useAuth();
+    const { user, signOut } = useAuth();
 
     return (
         <AuthGuard>
@@ -43,7 +43,7 @@ export default function Dashboard() {
                 <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                     <div className="px-4 py-6 sm:px-0">
                         {/* Temporary Demo State Initialization */}
-                        <ProjectDemoWrapper userId={user?.uid || 'anon'} getIdToken={getIdToken} />
+                        <ProjectDemoWrapper userId={user?.uid || 'anon'} />
                     </div>
                 </main>
             </div>
@@ -51,7 +51,7 @@ export default function Dashboard() {
     );
 }
 
-const ProjectDemoWrapper = ({ userId, getIdToken }: { userId: string, getIdToken: () => Promise<string> }) => {
+const ProjectDemoWrapper = ({ userId }: { userId: string }) => {
     // In a real app, we would fetch the project list here.
     const [doc, setDoc] = useState<DesignDocument>({
         id: crypto.randomUUID(),
@@ -69,17 +69,7 @@ const ProjectDemoWrapper = ({ userId, getIdToken }: { userId: string, getIdToken
         updatedAt: new Date()
     });
 
-    const [userToken, setUserToken] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
-
-    // Fetch fresh token on mount/user change
-    useEffect(() => {
-        if (userId !== 'anon') {
-            getIdToken().then(token => {
-                setUserToken(token);
-            }).catch(err => console.error("Failed to get token", err));
-        }
-    }, [userId, getIdToken]);
 
     // Load existing document on mount
     useEffect(() => {
@@ -158,7 +148,7 @@ const ProjectDemoWrapper = ({ userId, getIdToken }: { userId: string, getIdToken
                 </div>
                 {/* ID hidden for cleaner UI */}
             </div>
-            <ProjectWizard document={doc} onUpdate={handleUpdate} userToken={userToken} />
+            <ProjectWizard document={doc} onUpdate={handleUpdate} />
         </div>
     );
 };

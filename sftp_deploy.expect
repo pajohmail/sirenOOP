@@ -1,0 +1,52 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+set host [lindex $argv 0]
+set user [lindex $argv 1]
+set password [lindex $argv 2]
+set port [lindex $argv 3]
+set local_dir [lindex $argv 4]
+set remote_dir [lindex $argv 5]
+
+# Spawn SFTP via SSH (without -b)
+spawn sftp -o StrictHostKeyChecking=no -P $port $user@$host
+
+expect {
+    -re ".*assword.*" {
+        send "$password\r"
+        exp_continue
+    }
+    "sftp>" {
+        # Logged in!
+    }
+    timeout {
+        puts "Timed out waiting for prompt."
+        exit 1
+    }
+    eof {
+        puts "Connection failed."
+        exit 1
+    }
+}
+
+# Change directories and upload
+send "lcd $local_dir\r"
+expect "sftp>"
+
+# Navigate to remote root (where sirenOOP should live)
+send "cd $remote_dir\r"
+expect "sftp>"
+
+# Create sirenOOP directory (will display error but continue if exists)
+send "mkdir sirenOOP\r"
+expect "sftp>"
+
+# Enter sirenOOP directory
+send "cd sirenOOP\r"
+expect "sftp>"
+
+send "mput -r *\r"
+expect "sftp>"
+
+send "bye\r"
+expect eof
