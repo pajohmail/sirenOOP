@@ -2,7 +2,7 @@
 
 # Configuration
 EXPECT_SCRIPT="./sftp_deploy.expect"
-ENV_FILE=".env.local"
+ENV_FILE=".env"
 
 # Check if .env.local exists
 if [ -f "$ENV_FILE" ]; then
