@@ -50,7 +50,7 @@ export const ValidationPhase = ({ document, onUpdate }: PhaseProps) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = \`\${document.projectName || 'design-document'}.md\`;
+        a.download = `${document.projectName || 'design-document'}.md`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
