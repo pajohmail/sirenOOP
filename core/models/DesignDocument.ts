@@ -1,9 +1,7 @@
 export type ProjectPhase =
     | 'requirementsSpec'
     | 'analysis'
-    | 'systemDesign'
-    | 'objectDesign'
-    | 'validation';
+    | 'completed';
 
 export interface DesignDocument {
     id: string;
@@ -44,6 +42,8 @@ export interface DesignDocument {
         reviews: ReviewComment[];
         isApproved: boolean;
         exportUrl?: string;
+        generatedReport?: string;
+        reportGeneratedAt?: Date;
     };
 
     createdAt: Date;

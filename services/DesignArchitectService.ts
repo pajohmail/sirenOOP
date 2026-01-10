@@ -179,7 +179,7 @@ ${req.qualityRequirements?.map(qr => `- ${qr.category}: ${qr.description}`).join
     }
 
     async startSystemDesign(document: DesignDocument): Promise<DesignDocument> {
-        document.currentPhase = 'systemDesign';
+        // Note: currentPhase is managed by usePhaseAutomation, not individual methods
         document.systemDesign = {
             architectureDiagramMermaid: '',
             subsystems: [],

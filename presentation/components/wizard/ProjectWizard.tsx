@@ -4,11 +4,10 @@
 import { DesignDocument, ProjectPhase } from '@/core/models/DesignDocument';
 import { RequirementsSpecPhase } from '../phases/RequirementsSpecPhase';
 import { AnalysisPhase } from '../phases/AnalysisPhase';
-import { SystemDesignPhase } from '../phases/SystemDesignPhase';
-import { ObjectDesignPhase } from '../phases/ObjectDesignPhase';
-import { ValidationPhase } from '../phases/ValidationPhase';
+import { CompletedPhase } from '../phases/CompletedPhase';
 import { ModelTierBadge } from '../shared/ModelTierBadge';
 import { usePhaseAutomation } from '@/presentation/hooks/usePhaseAutomation';
+import { useEffect } from 'react';
 
 interface ProjectWizardProps {
     document: DesignDocument;
@@ -18,14 +17,20 @@ interface ProjectWizardProps {
 const steps: { id: ProjectPhase; label: string }[] = [
     { id: 'requirementsSpec', label: '1. Requirements' },
     { id: 'analysis', label: '2. Analysis' },
-    { id: 'systemDesign', label: '3. System Design' },
-    { id: 'objectDesign', label: '4. Object Design' },
-    { id: 'validation', label: '5. Validation' },
+    { id: 'completed', label: '3. Completed' },
 ];
 
 export const ProjectWizard = ({ document, onUpdate }: ProjectWizardProps) => {
     const currentStepIndex = steps.findIndex((s) => s.id === document.currentPhase);
     const { automationState } = usePhaseAutomation();
+
+    // Migration: Auto-migrate old phases to 'completed'
+    useEffect(() => {
+        const oldPhases = ['systemDesign', 'objectDesign', 'validation'];
+        if (oldPhases.includes(document.currentPhase)) {
+            onUpdate({ ...document, currentPhase: 'completed' as const });
+        }
+    }, [document.currentPhase]);
 
     const handlePhaseChange = (phase: ProjectPhase) => {
         // In a real app, perform validation before switching
@@ -46,8 +51,8 @@ export const ProjectWizard = ({ document, onUpdate }: ProjectWizardProps) => {
                     {steps.map((step, index) => {
                         const isCompleted = index < currentStepIndex;
                         const isCurrent = index === currentStepIndex;
-                        const isAutoRunning = automationState.isRunning &&
-                            step.id === automationState.currentAutoPhase;
+                        // Show automation spinner on Analysis step when automation is running
+                        const isAutoRunning = automationState.isRunning && step.id === 'analysis';
 
                         return (
                             <div key={step.id} className="flex flex-col items-center bg-white px-2">
@@ -83,21 +88,19 @@ export const ProjectWizard = ({ document, onUpdate }: ProjectWizardProps) => {
             </div>
 
             {/* Phase Content */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 min-h-[600px] p-6">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 min-h-[600px]">
                 {document.currentPhase === 'requirementsSpec' && (
-                    <RequirementsSpecPhase document={document} onUpdate={onUpdate} />
+                    <div className="p-6">
+                        <RequirementsSpecPhase document={document} onUpdate={onUpdate} />
+                    </div>
                 )}
                 {document.currentPhase === 'analysis' && (
-                    <AnalysisPhase document={document} onUpdate={onUpdate} />
+                    <div className="p-6">
+                        <AnalysisPhase document={document} onUpdate={onUpdate} />
+                    </div>
                 )}
-                {document.currentPhase === 'systemDesign' && (
-                    <SystemDesignPhase document={document} onUpdate={onUpdate} />
-                )}
-                {document.currentPhase === 'objectDesign' && (
-                    <ObjectDesignPhase document={document} onUpdate={onUpdate} />
-                )}
-                {document.currentPhase === 'validation' && (
-                    <ValidationPhase document={document} onUpdate={onUpdate} />
+                {document.currentPhase === 'completed' && (
+                    <CompletedPhase document={document} onUpdate={onUpdate} />
                 )}
             </div>
 
@@ -127,11 +130,22 @@ export const ProjectWizard = ({ document, onUpdate }: ProjectWizardProps) => {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <div>
-                            <p className="text-sm font-semibold text-blue-900">Automation in Progress</p>
-                            <p className="text-xs text-blue-700">
-                                Currently generating: {automationState.currentAutoPhase}. Please wait...
-                            </p>
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold text-blue-900">Generating Design</p>
+                            {automationState.progress && (
+                                <>
+                                    <p className="text-xs text-blue-700 mt-1">{automationState.progress.message}</p>
+                                    <div className="mt-2 w-full bg-blue-200 rounded-full h-2">
+                                        <div
+                                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${(automationState.progress.current / automationState.progress.total) * 100}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                        Step {automationState.progress.current} of {automationState.progress.total}
+                                    </p>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
